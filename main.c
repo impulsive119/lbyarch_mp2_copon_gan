@@ -45,55 +45,38 @@ double time_kernel(void (*kernel)(int, float*, float*, float*, float*, float*),
 }
 
 int main() {
-    unsigned int iterations = 1; // Fixed number of iterations
+    unsigned int iterations;
+    printf("Enter the number of iterations for performance testing: ");
+    if (scanf("%u", &iterations) != 1 || iterations == 0) {
+        printf("Invalid input. Using default value of 30 iterations.\n");
+        iterations = 30;
+    }
     
-    // Reduced maximum size to 2^27 to avoid memory allocation issues
-    int sizes[] = {1048576, 16777216, 134217728, 268435456}; // 2^20, 2^24, 2^27, 2^28
-    //int sizes[] = {1048576, 16777216, 536870912, 1073741824}; // 2^20, 2^24, 2^27, 2^30
+    int sizes[] = {1048576, 16777216, 134217728}; // 2^20, 2^24, 2^30
     int num_sizes = sizeof(sizes) / sizeof(sizes[0]);
     
-    
+    printf("%u Iterations\n", iterations);
+    printf("%-12s %-15s %-15s\n", "Vector Size", "C RunTime", "ASM RunTime");
+    printf("-------------------------------------------------------\n");
     
     for (int s = 0; s < num_sizes; s++) {
         int n = sizes[s];
-        // Calculate memory requirements (in MB)
-        size_t memory_per_array = n * sizeof(float);
-        size_t total_memory = memory_per_array * 6; // 6 arrays total
-        double memory_mb = total_memory / (1024.0 * 1024.0);
-        
-        
-
         
         // Allocate memory
-        float* x1 = (float*)malloc(memory_per_array);
-        float* x2 = (float*)malloc(memory_per_array);
-        float* y1 = (float*)malloc(memory_per_array);
-        float* y2 = (float*)malloc(memory_per_array);
-        float* z_c = (float*)malloc(memory_per_array);
-        float* z_asm = (float*)malloc(memory_per_array);
+        float* x1 = (float*)malloc(n * sizeof(float));
+        float* x2 = (float*)malloc(n * sizeof(float));
+        float* y1 = (float*)malloc(n * sizeof(float));
+        float* y2 = (float*)malloc(n * sizeof(float));
+        float* z_c = (float*)malloc(n * sizeof(float));
+        float* z_asm = (float*)malloc(n * sizeof(float));
         
         if (!x1 || !x2 || !y1 || !y2 || !z_c || !z_asm) {
-            printf("Memory allocation failed for size %d (%.1f MB required)\n", n, memory_mb);
-            // Free any successfully allocated memory
-            if (x1) free(x1);
-            if (x2) free(x2);
-            if (y1) free(y1);
-            if (y2) free(y2);
-            if (z_c) free(z_c);
-            if (z_asm) free(z_asm);
+            printf("Memory allocation failed for size %d\n", n);
             continue;
         }
         
         // Initialize vectors
         initialize_vectors(n, x1, x2, y1, y2);
-        
-        // Display first 10 elements of input vectors
-        printf("\nFirst 10 elements of input vectors for size %d:\n", n);
-        printf("Index:  x1           x2           y1           y2\n");
-        for (int i = 0; i < 10 && i < n; i++) {
-            printf("%-6d  %-11.6f  %-11.6f  %-11.6f  %-11.6f\n", i, x1[i], x2[i], y1[i], y2[i]);
-        }
-        printf("\n");
         
         // Time C version
         double time_c = time_kernel(calculate_distances_c, n, x1, x2, y1, y2, z_c, iterations);
@@ -106,25 +89,26 @@ int main() {
         int correct = verify_results(verify_count, z_c, z_asm, 1e-5f);
         
         double speedup = time_c / time_asm;
-        printf("Attempting size %d (%.1f MB total)...\n", n, memory_mb);
-        printf("%-12s %-15s %-15s\n", "Vector Size", "C RunTime", "ASM RunTime");
-        printf("-------------------------------------------------------\n");
         
         printf("%-12d %-15.6f %-15.6f %-10.2fx %s\n", n, time_c, time_asm, speedup, 
                correct ? "" : "(INCORRECT)");
         
-        
-        // Display first 10 elements for each size
-        printf("\nFirst 10 elements comparison for size %d:\n", n);
-        printf("Index:  C Result     ASM Result\n");
-        for (int i = 0; i < 10 && i < n; i++) {
-            printf("%-6d  %-11.6f  %-11.6f\n", i, z_c[i], z_asm[i]);
+        // Display first 10 elements for smallest size
+        if (n == sizes[0]) {
+            printf("\nFirst 10 elements comparison:\n");
+            printf("Index:  C Result     ASM Result   Difference\n");
+            for (int i = 0; i < 10 && i < n; i++) {
+                printf("%-6d  %-11.6f  %-11.6f  %.2e\n", i, z_c[i], z_asm[i], 
+                       fabs(z_c[i] - z_asm[i]));
+            }
+            printf("\n");
         }
-        printf("\n");
         
         // Free memory
         free(x1); free(x2); free(y1); free(y2); free(z_c); free(z_asm);
     }
+    
+
     
     return 0;
 }

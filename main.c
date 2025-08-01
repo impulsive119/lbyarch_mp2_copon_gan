@@ -49,21 +49,22 @@ int main() {
     
     // Reduced maximum size to 2^27 to avoid memory allocation issues
     int sizes[] = {1048576, 16777216, 134217728, 268435456}; // 2^20, 2^24, 2^27, 2^28
+    //int sizes[] = {1048576, 16777216, 536870912, 1073741824}; // 2^20, 2^24, 2^27, 2^30
     int num_sizes = sizeof(sizes) / sizeof(sizes[0]);
     
-    printf("%u Iterations\n", iterations);
-    printf("%-12s %-15s %-15s\n", "Vector Size", "C RunTime", "ASM RunTime");
-    printf("-------------------------------------------------------\n");
+    
     
     for (int s = 0; s < num_sizes; s++) {
         int n = sizes[s];
-        
         // Calculate memory requirements (in MB)
         size_t memory_per_array = n * sizeof(float);
         size_t total_memory = memory_per_array * 6; // 6 arrays total
         double memory_mb = total_memory / (1024.0 * 1024.0);
-        
         printf("Attempting size %d (%.1f MB total)...\n", n, memory_mb);
+        printf("%-12s %-15s %-15s\n", "Vector Size", "C RunTime", "ASM RunTime");
+        printf("-------------------------------------------------------\n");
+        
+
         
         // Allocate memory
         float* x1 = (float*)malloc(memory_per_array);
